@@ -1,5 +1,13 @@
 {
   "name": "rmp-up/patchwork",
   "license": "proprietary",
-  "type": "composer-plugin"
+  "type": "composer-plugin",
+  "extra": {
+    "class": "RmpUp\\PatchWork\\Composer\\PatchWorkPlugin"
+  },
+  "autoload": {
+    "psr-4": {
+      "RmpUp\\PatchWork\\": "lib/RmpUp/PatchWork"
+    }
+  }
 }
