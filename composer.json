@@ -2,6 +2,9 @@
   "name": "rmp-up/patchwork",
   "license": "proprietary",
   "type": "composer-plugin",
+  "require": {
+    "composer-plugin-api": "^1.0"
+  }
   "extra": {
     "class": "RmpUp\\PatchWork\\Composer\\PatchWorkPlugin"
   },
