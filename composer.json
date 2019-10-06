@@ -1,9 +1,13 @@
 {
-  "name": "rmp-up/patchwork",
+  "name": "patch/work",
   "license": "proprietary",
+  "description": "Change packages using patch files during composer install",
   "type": "composer-plugin",
   "require": {
     "composer-plugin-api": "^1.0"
+  },
+  "require-dev": {
+    "composer/composer": "^1.0"
   },
   "extra": {
     "class": "RmpUp\\PatchWork\\Composer\\PatchWorkPlugin"
