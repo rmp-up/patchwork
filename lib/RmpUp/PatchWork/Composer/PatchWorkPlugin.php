@@ -93,7 +93,8 @@ class PatchWorkPlugin implements PluginInterface, EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            'post-install-cmd' => ['patch', 0]
+            // Right after "post-install-cmd" where more package installer reside
+            'pre-autoload-dump' => ['patch', 0]
         ];
     }
 
