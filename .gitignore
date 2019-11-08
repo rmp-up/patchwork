@@ -1,0 +1,7 @@
+.idea/
+
+opt/doc
+var/
+vendor/
+
+composer.lock
