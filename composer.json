@@ -4,6 +4,7 @@
   "description": "Change packages using patch files during composer install",
   "type": "composer-plugin",
   "require": {
+    "php": "^7.1",
     "composer-plugin-api": "^1.0"
   },
   "require-dev": {

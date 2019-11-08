@@ -28,14 +28,11 @@ use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Factory;
 use Composer\IO\IOInterface;
-use Composer\Package\CompletePackage;
-use Composer\Package\Link;
-use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
-use Generator;
 use patchwork\lib\RmpUp\PatchWork\Patcher\PatchException;
 use RmpUp\PatchWork\Finder;
+use RmpUp\PatchWork\PackagesParser;
 use RmpUp\PatchWork\StrategyFactory;
 
 /**
@@ -48,6 +45,7 @@ use RmpUp\PatchWork\StrategyFactory;
 class PatchWorkPlugin implements PluginInterface, EventSubscriberInterface
 {
     protected const PACKAGE_TYPE = 'patchwork';
+
     /**
      * @var Composer
      */
@@ -113,6 +111,8 @@ class PatchWorkPlugin implements PluginInterface, EventSubscriberInterface
             )
         );
 
+        $localRepository = $event->getComposer()->getRepositoryManager()->getLocalRepository();
+
         // Iterate config
         foreach ($this->getConfig() as $directory => $patches) {
             $fullPath = $baseDir . ltrim($directory, DIRECTORY_SEPARATOR);
@@ -131,8 +131,10 @@ class PatchWorkPlugin implements PluginInterface, EventSubscriberInterface
                 );
             }
 
+            $patches = (array) $patches; // In case it's not an array (but a string e.g.)
+
             if ($this->io->isDebug()) {
-                $this->io->write(sprintf('Applying %d patch(es) ...', count((array)$patches)));
+                $this->io->write(sprintf('Applying %d patch(es) ...', count($patches)));
             }
 
             $patcher = $this->strategy($event, $fullPath);
@@ -141,68 +143,30 @@ class PatchWorkPlugin implements PluginInterface, EventSubscriberInterface
                 $this->io->writeError('PatchWork: No patcher available');
             }
 
-            try {
-                $patcher->applyPatches(
-                    $this->fetchPatches(
-                        $finder->find('patch/wp-*'),
-                        $event
-                    )
-                );
-            } catch (PatchException $e) {
-                $this->io->writeError('PatchWork: ' . $e->getMessage());
+            foreach ($patches as $patchPattern) {
+                try {
+                    $patcher->applyPatches(
+                        $this->parser()->parse(
+                            $finder->find($patchPattern),
+                            $localRepository
+                        )
+                    );
+                } catch (PatchException $e) {
+                    $this->io->writeError('PatchWork: ' . $e->getMessage());
+                }
             }
         }
     }
 
-    /**
-     * @param Link[] $packageLinks
-     * @param Event  $event
-     *
-     * @return Generator|array[]
-     */
-    private function fetchPatches($packageLinks, Event $event): Generator
+    private function parser(): PackagesParser
     {
-        $vendorDir = $event->getComposer()->getConfig()->get('vendor-dir');
+        static $parser;
 
-        foreach ($packageLinks as $require) {
-            $pack = $event->getComposer()
-                ->getRepositoryManager()
-                ->getLocalRepository()
-                ->findPackage($require->getTarget(), $require->getConstraint());
-
-            if (false === $pack instanceof CompletePackage || self::PACKAGE_TYPE !== $pack->getType()) {
-                continue;
-            }
-
-            $extra = $pack->getExtra();
-
-            if (!array_key_exists(static::PACKAGE_TYPE, $extra)) {
-                return;
-            }
-
-            yield $pack->getName() => $this->globPatchFiles(
-                (array) $extra[static::PACKAGE_TYPE],
-                $vendorDir,
-                $pack
-            );
-        }
-    }
-
-    /**
-     * @param array            $patches
-     * @param string           $vendorDir
-     * @param PackageInterface $pack
-     *
-     * @return array
-     */
-    private function globPatchFiles($patches, $vendorDir, PackageInterface $pack): array
-    {
-        $patchFiles = [];
-        foreach ($patches as $patch) {
-            $patchFiles[] = glob($vendorDir . '/' . $pack->getName() . '/' . $patch, GLOB_NOSORT);
+        if (null === $parser) {
+            $parser = new PackagesParser($this->composer->getConfig()->get('vendor-dir'));
         }
 
-        return array_merge(...$patchFiles);
+        return $parser;
     }
 
     private function strategy($event, $dir)

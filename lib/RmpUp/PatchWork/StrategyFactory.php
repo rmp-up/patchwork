@@ -59,14 +59,14 @@ class StrategyFactory
      */
     private function resolveCommand(array $commands): ?string {
         // using builtin type command to check for "which"
-        if (!$this->shellExec('type -t which')) {
+        if (!$this->shellExec('type which')) {
             // "which" command is not there, wth?
             return null;
         }
 
         foreach ($commands as $command) {
             // Lookup
-            if (!$this->shellExec('which '. escapeshellarg($command))) {
+            if ($this->shellExec('which '. escapeshellarg($command))) {
                 return $command;
             }
         }
