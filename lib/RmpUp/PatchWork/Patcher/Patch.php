@@ -51,6 +51,7 @@ class Patch extends AbstractPatcher
                     . ' -p1 ' // makes git patch files yummy
                     . ' -f ' // do not ask for deletions
                     . ' -s ' // hush
+                    . ' --no-backup-if-mismatch ' // no clutter like .orig-files
                     . ' --merge=diff3 ' // detects if already applied
                     . ' -r ' . escapeshellarg($rejectFile) // no reject files to keep things clean
                     . ' < ' . escapeshellarg($patch)
