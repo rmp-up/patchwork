@@ -113,6 +113,7 @@ class PatchWorkPlugin implements PluginInterface, EventSubscriberInterface
         );
 
         $localRepository = $event->getComposer()->getRepositoryManager()->getLocalRepository();
+        $selfName = $event->getComposer()->getPackage()->getName();
 
         // Iterate config
         foreach ($this->getConfig() as $directory => $patches) {
@@ -146,12 +147,14 @@ class PatchWorkPlugin implements PluginInterface, EventSubscriberInterface
 
             foreach ($patches as $patchPattern) {
                 try {
-                    $patcher->applyPatches(
-                        $this->parser()->parse(
-                            $finder->find($patchPattern),
-                            $localRepository
-                        )
-                    );
+                    $patchFiles = [$selfName => glob($baseDir . '/' . $patchPattern, GLOB_NOSORT)];
+
+                    if (!$patchFiles[$selfName]) {
+                        // No local files meant so we make the more expensive package lookup
+                        $patchFiles = $this->parser()->parse($finder->find($patchPattern), $localRepository);
+                    }
+
+                    $patcher->applyPatches($patchFiles);
                 } catch (PatchException $e) {
                     $this->io->writeError('PatchWork: ' . $e->getMessage());
                 }
